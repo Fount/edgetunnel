@@ -73,6 +73,7 @@ DEFAULT_CONFIG = {
     "reality_private_key": "",
     "reality_public_key": "",
     "reality_short_id": "0123456789abcdef",
+    "enabled_isps": ["cmcc", "ct"],
     "优选订阅生成": {
         "local": True,
         "本地IP库": {
@@ -221,8 +222,21 @@ def parse_node_line(line, default_port=443):
 
 
 def build_clash_yaml(cfg, add_txt, addapi_txt=""):
-    raw_lines = add_txt.splitlines()
+    raw_lines = []
 
+    # 1. 自动注入已勾选运营商的官方 CIDR 优选 IP 池
+    enabled_isps = cfg.get("enabled_isps", ["cmcc", "ct"])
+    for isp in enabled_isps:
+        isp_ips = generate_random_ips(isp, 16)
+        raw_lines.extend(isp_ips)
+
+    # 2. 合并自定义优选列表 (ADD.txt)
+    if add_txt:
+        for l in add_txt.splitlines():
+            if l.strip():
+                raw_lines.append(l.strip())
+
+    # 3. 合并远程优选 API
     if addapi_txt:
         for api_url in addapi_txt.splitlines():
             api_url = api_url.strip()
@@ -450,10 +464,11 @@ class AppHandler(BaseHTTPRequestHandler):
             full_config = {
                 "TIME": time.strftime("%Y-%m-%d %H:%M:%S"),
                 "HOST": host_domain,
-                "HOSTS": [host_domain],
+                "HOSTS": list(dict.fromkeys([host_domain, "node.ffly.ccwu.cc", "ffly.ccwu.cc", host])),
                 "UUID": uuid_val,
                 "PATH": ws_path,
                 "LINK": link_url,
+                "enabled_isps": cfg.get("enabled_isps", ["cmcc", "ct"]),
                 "加载时间": "12ms",
                 "协议类型": "vless",
                 "传输协议": "ws",

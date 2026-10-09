@@ -10501,7 +10501,32 @@
 						</select>
 					</div>
 
-					<div id="randomIPSection" class="form-group">
+					
+					<div class="form-group" style="margin-top: 16px; padding: 14px; background: rgba(33, 150, 243, 0.08); border-radius: 10px; border: 1px solid rgba(33, 150, 243, 0.25);">
+						<label style="font-weight: 600; margin-bottom: 10px; display: block; color: #2196F3;">🌐 运营商优选节点池（支持多选，自动合并生成）：</label>
+						<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 8px;">
+							<label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 14px;">
+								<input type="checkbox" id="isp_cmcc" value="cmcc" onchange="updateISPCheckboxes()" style="width: 18px; height: 18px; cursor: pointer;">
+								<span>📱 <strong>中国移动优选</strong> (CMI专线)</span>
+							</label>
+							<label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 14px;">
+								<input type="checkbox" id="isp_ct" value="ct" onchange="updateISPCheckboxes()" style="width: 18px; height: 18px; cursor: pointer;">
+								<span>⚡ <strong>中国电信优选</strong> (163直连)</span>
+							</label>
+							<label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 14px;">
+								<input type="checkbox" id="isp_cu" value="cu" onchange="updateISPCheckboxes()" style="width: 18px; height: 18px; cursor: pointer;">
+								<span>🌐 <strong>中国联通优选</strong> (CU骨干)</span>
+							</label>
+							<label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 14px;">
+								<input type="checkbox" id="isp_cf" value="cf" onchange="updateISPCheckboxes()" style="width: 18px; height: 18px; cursor: pointer;">
+								<span>☁️ <strong>Cloudflare 官方优选</strong></span>
+							</label>
+						</div>
+						<p style="font-size: 12px; color: #888; margin: 0; line-height: 1.5;">
+							💡 <strong>多地点自适应说明</strong>：同时勾选移动和电信后，订阅中将同时包含两家运营商优选节点；Clash 在移动宽带（地点A）下会自动测速走移动，在电信宽带（地点B）下自动测速走电信，<strong>无需更换订阅链接！</strong>
+						</p>
+					</div>
+<div id="randomIPSection" class="form-group">
 						<label for="randomCount">随机优选数量</label>
 						<input type="number" id="randomCount" title="随机优选数量 1~99" min="1" max="99" value="16"
 							onchange="markModified('sub')" oninput="if(this.value>99){this.value=99;}">
@@ -19318,7 +19343,17 @@
 			textarea.dispatchEvent(new Event('input', { bubbles: true }));
 		}
 
-		async function loadConfig() {
+		async 
+		function updateISPCheckboxes() {
+			const selected = [];
+			if (document.getElementById('isp_cmcc').checked) selected.push('cmcc');
+			if (document.getElementById('isp_ct').checked) selected.push('ct');
+			if (document.getElementById('isp_cu').checked) selected.push('cu');
+			if (document.getElementById('isp_cf').checked) selected.push('cf');
+			currentConfig.enabled_isps = selected;
+			markModified('sub');
+		}
+function loadConfig() {
 			try {
 				// 禁用 Rocket Loader 对该请求的影响
 				const response = await fetch('/admin/config.json?_t=' + Date.now(), {
@@ -19373,7 +19408,13 @@
 			}
 
 			// 订阅链接
-			const token = currentConfig.优选订阅生成?.TOKEN;
+			
+			const enabledISPs = currentConfig.enabled_isps || ['cmcc', 'ct'];
+			if (document.getElementById('isp_cmcc')) document.getElementById('isp_cmcc').checked = enabledISPs.includes('cmcc');
+			if (document.getElementById('isp_ct')) document.getElementById('isp_ct').checked = enabledISPs.includes('ct');
+			if (document.getElementById('isp_cu')) document.getElementById('isp_cu').checked = enabledISPs.includes('cu');
+			if (document.getElementById('isp_cf')) document.getElementById('isp_cf').checked = enabledISPs.includes('cf');
+const token = currentConfig.优选订阅生成?.TOKEN;
 			const host = window.location.host;
 			const link = currentConfig.LINK;
 			document.getElementById('LinkURL').value = currentConfig.LINK;
