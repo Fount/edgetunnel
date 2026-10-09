@@ -177,7 +177,29 @@ if not os.path.exists(ADDAPI_PATH):
         f.write("")
 
 
-def sign_token(val):
+def render_template(template_name, context=None):
+    if context is None:
+        context = {}
+    path = os.path.join(BASE_DIR, "templates", template_name)
+    if not os.path.exists(path):
+        return f"<h1>Template {template_name} Not Found</h1>".encode("utf-8")
+    with open(path, "r", encoding="utf-8") as f:
+        html = f.read()
+
+    # 处理 {% if var %}...{% endif %}
+    for var, val in context.items():
+        if val:
+            html = re.sub(rf"\{{%\s*if\s+{var}\s*%\}}(.*?)\{{%\s*endif\s*%\}}", r"\1", html, flags=re.DOTALL)
+        else:
+            html = re.sub(rf"\{{%\s*if\s+{var}\s*%\}}(.*?)\{{%\s*endif\s*%\}}", "", html, flags=re.DOTALL)
+    # 清理其余未匹配的 if
+    html = re.sub(r"\{%\s*if\s+[\w_]+\s*%\}.*?\{%\s*endif\s*%\}", "", html, flags=re.DOTALL)
+
+    # 处理变量插值 {{ var }}
+    for k, v in context.items():
+        html = html.replace(f"{{{{ {k} }}}}", str(v))
+        html = html.replace(f"{{{{{k}}}}}", str(v))
+    return html.encode("utf-8")
     sig = hmac.new(SECRET_KEY, val.encode("utf-8"), hashlib.sha256).hexdigest()
     return f"{val}.{sig}"
 
@@ -430,19 +452,47 @@ class AppHandler(BaseHTTPRequestHandler):
             self.redirect("/login", set_cookie="auth=; Path=/; Max-Age=0; HttpOnly")
             return
 
-        # 原版管理后台页面 /admin
+        # 管理后台页面 /admin
         if path == "/admin" or path == "/admin/":
             if not self.is_authenticated():
                 self.redirect("/login")
                 return
-            orig_path = os.path.join(BASE_DIR, "templates", "admin_original.html")
-            if os.path.exists(orig_path):
-                with open(orig_path, "rb") as f:
-                    self.send_resp(200, "text/html; charset=utf-8", f.read())
-                return
-            tpl_path = os.path.join(BASE_DIR, "templates", "admin.html")
-            with open(tpl_path, "rb") as f:
-                self.send_resp(200, "text/html; charset=utf-8", f.read())
+            cfg = load_config()
+            add_txt = ""
+            if os.path.exists(ADD_PATH):
+                with open(ADD_PATH, "r", encoding="utf-8") as f:
+                    add_txt = f.read()
+            addapi_txt = ""
+            if os.path.exists(ADDAPI_PATH):
+                with open(ADDAPI_PATH, "r", encoding="utf-8") as f:
+                    addapi_txt = f.read()
+
+            host_header = self.headers.get("Host", cfg.get("domain", "node.ffly.ccwu.cc"))
+            proto = "https" if "https" in self.headers.get("X-Forwarded-Proto", "http") or ":443" in host_header else "http"
+            sub_url = f"{proto}://{host_header}/sub?token={cfg['sub_token']}"
+            host_domain = host_header.split(":")[0] if ":" in host_header else host_header
+            vless_link = f"vless://{cfg['uuid']}@{host_header}:443?encryption=none&security=tls&sni={host_domain}&type=ws&host={host_domain}&path={urllib.parse.quote(cfg.get('ws_path', '/api-stream'))}#{urllib.parse.quote(host_domain)}"
+
+            enabled_isps = cfg.get("enabled_isps", ["cmcc", "ct"])
+            context = {
+                "uuid": cfg["uuid"],
+                "token": cfg["sub_token"],
+                "domain": cfg.get("domain", "node.ffly.ccwu.cc"),
+                "reality_port": cfg.get("reality_port", 8443),
+                "reality_public_key": cfg.get("reality_public_key", ""),
+                "ws_path": cfg.get("ws_path", "/api-stream"),
+                "sub_url": sub_url,
+                "vless_link": vless_link,
+                "add_txt": add_txt,
+                "addapi_txt": addapi_txt,
+                "enable_cmcc": "cmcc" in enabled_isps,
+                "enable_ct": "ct" in enabled_isps,
+                "enable_cu": "cu" in enabled_isps,
+                "enable_cf": "cf" in enabled_isps,
+                "msg": query.get("msg", [""])[0],
+            }
+            body = render_template("admin.html", context)
+            self.send_resp(200, "text/html; charset=utf-8", body)
             return
 
         # API: /admin/config.json
@@ -660,6 +710,31 @@ class AppHandler(BaseHTTPRequestHandler):
 
         if not self.is_authenticated():
             self.send_resp(401, "application/json", b'{"error":"Unauthorized"}')
+            return
+
+        # 表单提交保存 /admin
+        if path == "/admin":
+            form_data = urllib.parse.parse_qs(raw_body.decode("utf-8", errors="ignore"))
+            add_txt = form_data.get("add_txt", [""])[0]
+            addapi_txt = form_data.get("addapi_txt", [""])[0]
+
+            with open(ADD_PATH, "w", encoding="utf-8") as f:
+                f.write(add_txt.replace("\r\n", "\n"))
+            with open(ADDAPI_PATH, "w", encoding="utf-8") as f:
+                f.write(addapi_txt.replace("\r\n", "\n"))
+
+            selected_isps = []
+            if "isp_cmcc" in form_data: selected_isps.append("cmcc")
+            if "isp_ct" in form_data: selected_isps.append("ct")
+            if "isp_cu" in form_data: selected_isps.append("cu")
+            if "isp_cf" in form_data: selected_isps.append("cf")
+
+            cfg = load_config()
+            cfg["enabled_isps"] = selected_isps
+            save_config(cfg)
+
+            print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Saved /admin form: enabled_isps={selected_isps}")
+            self.redirect("/admin?msg=" + urllib.parse.quote("配置与运营商优选设置已保存成功！"))
             return
 
         # API: POST /admin/config.json

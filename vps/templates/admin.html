@@ -3,8 +3,85 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>edgetunnel VPS 节点管理</title>
+  <title>edgetunnel VPS 独立节点管理后台</title>
   <link rel="stylesheet" href="/static/style.css">
+  <style>
+    /* Checkbox & Generator Styling */
+    .isp-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    .isp-card {
+      background: var(--bg-input);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      padding: 12px 14px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .isp-card:hover {
+      border-color: var(--accent-primary);
+      background: rgba(56, 189, 248, 0.05);
+    }
+    .isp-card input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      accent-color: var(--accent-primary);
+      cursor: pointer;
+    }
+    .isp-label {
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: var(--text-primary);
+      cursor: pointer;
+    }
+    .isp-sub {
+      display: block;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+    .btn-tool {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border-color);
+      color: var(--text-secondary);
+      font-size: 0.8rem;
+      padding: 6px 12px;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-tool:hover {
+      background: rgba(56, 189, 248, 0.15);
+      color: var(--accent-primary);
+      border-color: rgba(56, 189, 248, 0.3);
+    }
+    .links-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .link-row {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .link-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .link-title {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+    }
+  </style>
 </head>
 <body>
   <div class="container">
@@ -14,7 +91,7 @@
         <div class="brand-logo">🚀</div>
         <div>
           <span class="brand-title">edgetunnel VPS</span>
-          <span class="badge">VPS Edition</span>
+          <span class="badge">独立机场控制台</span>
         </div>
       </div>
       <div class="header-actions">
@@ -26,7 +103,7 @@
     <div class="alert alert-success">{{ msg }}</div>
     {% endif %}
 
-    <!-- Card 1: 核心参数概览 -->
+    <!-- Card 1: 核心参数与状态 -->
     <div class="card">
       <div class="card-title">🔑 核心运行参数</div>
       <div class="param-grid">
@@ -45,73 +122,137 @@
           </div>
         </div>
         <div class="param-item">
-          <span class="param-label">服务域名 (SNI / Host)</span>
+          <span class="param-label">服务域名 (Host / SNI)</span>
           <div class="param-value-wrap">
             <span class="param-value" id="val-domain">{{ domain }}</span>
             <button type="button" class="btn-copy" onclick="copyText('val-domain')">复制</button>
           </div>
         </div>
         <div class="param-item">
-          <span class="param-label">Reality 端口 / 公钥</span>
+          <span class="param-label">Reality 极速直连 (端口: {{ reality_port }})</span>
           <div class="param-value-wrap">
-            <span class="param-value" id="val-reality">{{ reality_port }} | {{ reality_public_key }}</span>
-            <button type="button" class="btn-copy" onclick="copyText('val-reality')">复制</button>
+            <span class="param-value" id="val-reality">{{ reality_public_key }}</span>
+            <button type="button" class="btn-copy" onclick="copyText('val-reality')">复制公钥</button>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Card 2: 快捷订阅导出 -->
+    <!-- Card 2: 节点与订阅导出 -->
     <div class="card">
-      <div class="card-title">🔗 Clash / Mihomo 专属订阅</div>
-      <div class="sub-box">
-        <input 
-          type="text" 
-          id="sub-url-input" 
-          class="sub-input" 
-          value="{{ sub_url }}" 
-          readonly 
-          onclick="this.select()"
-        >
-        <button type="button" class="btn btn-primary" onclick="copySubUrl()">
-          📋 复制 Clash 订阅链接
-        </button>
+      <div class="card-title">🔗 订阅与节点导出</div>
+      <div class="links-grid">
+        <div class="link-row">
+          <div class="link-header">
+            <span class="link-title">⚡ Clash / Mihomo 专属自适应订阅（包含全套策略组与全部优选节点）</span>
+          </div>
+          <div class="sub-box">
+            <input type="text" id="clash-sub-input" class="sub-input" value="{{ sub_url }}" readonly onclick="this.select()">
+            <button type="button" class="btn btn-primary" onclick="copyInput('clash-sub-input', 'Clash 订阅链接已复制')">
+              📋 复制 Clash 订阅
+            </button>
+          </div>
+        </div>
+
+        <div class="link-row">
+          <div class="link-header">
+            <span class="link-title">🚀 单节点直连 VLESS 链接</span>
+          </div>
+          <div class="sub-box">
+            <input type="text" id="vless-link-input" class="sub-input" value="{{ vless_link }}" readonly onclick="this.select()">
+            <button type="button" class="btn btn-secondary" onclick="copyInput('vless-link-input', 'VLESS 节点已复制')">
+              📋 复制节点
+            </button>
+          </div>
+        </div>
       </div>
-      <p class="hint">可直接填入 Clash Verge、Clash Meta 或 NAS 聚合服务中，自动包含全部优选节点与 Reality 直连。</p>
     </div>
 
     <!-- Main Config Form -->
     <form method="POST" action="/admin">
-      <!-- Card 3: 自定义优选 IP 池 -->
+      <!-- Card 3: 运营商优选 Checkbox 模块 -->
       <div class="card">
-        <div class="card-title">📝 自定义优选 IP / 域名池 (ADD.txt)</div>
+        <div class="card-title">🌐 运营商优选节点池（支持多选，自动合并生成）</div>
+        <p class="hint" style="margin-bottom: 14px;">
+          勾选你需要的运营商，服务端在生成订阅时会自动注入对应的官方优质 Anycast 网段（每个运营商 16 个随机节点）：
+        </p>
+
+        <div class="isp-grid">
+          <label class="isp-card">
+            <input type="checkbox" name="isp_cmcc" value="1" {% if enable_cmcc %}checked{% endif %}>
+            <div>
+              <span class="isp-label">📱 中国移动优选 (cmcc)</span>
+              <span class="isp-sub">CMI 骨干专线 · 16个节点</span>
+            </div>
+          </label>
+
+          <label class="isp-card">
+            <input type="checkbox" name="isp_ct" value="1" {% if enable_ct %}checked{% endif %}>
+            <div>
+              <span class="isp-label">⚡ 中国电信优选 (ct)</span>
+              <span class="isp-sub">163 美西直连 · 16个节点</span>
+            </div>
+          </label>
+
+          <label class="isp-card">
+            <input type="checkbox" name="isp_cu" value="1" {% if enable_cu %}checked{% endif %}>
+            <div>
+              <span class="isp-label">🌐 中国联通优选 (cu)</span>
+              <span class="isp-sub">CU 骨干直连 · 16个节点</span>
+            </div>
+          </label>
+
+          <label class="isp-card">
+            <input type="checkbox" name="isp_cf" value="1" {% if enable_cf %}checked{% endif %}>
+            <div>
+              <span class="isp-label">☁️ Cloudflare 官方优选 (cf)</span>
+              <span class="isp-sub">Anycast 全网优选 · 16个节点</span>
+            </div>
+          </label>
+        </div>
+
+        <div style="background: rgba(56, 189, 248, 0.08); border-left: 3px solid var(--accent-primary); padding: 10px 14px; border-radius: 4px; font-size: 0.8rem; color: var(--text-secondary);">
+          💡 <strong>多地点自适应说明</strong>：同时勾选移动和电信后，生成的订阅将同时包含移动和电信节点；Clash 在移动宽带（地点A）会自动测速走移动，在电信宽带（地点B）会自动测速走电信，<strong>无需更换订阅链接！</strong>
+        </div>
+      </div>
+
+      <!-- Card 4: 自定义优选 IP 列表 -->
+      <div class="card">
+        <div class="card-title" style="justify-content: space-between;">
+          <span>📝 自定义优选 IP / 域名池 (ADD.txt)</span>
+          <div style="display: flex; gap: 8px;">
+            <button type="button" class="btn-tool" onclick="appendRandomIPs('cmcc')">+ 插入16个移动IP</button>
+            <button type="button" class="btn-tool" onclick="appendRandomIPs('ct')">+ 插入16个电信IP</button>
+          </div>
+        </div>
         <div class="form-group">
           <textarea 
+            id="add_txt_area"
             name="add_txt" 
             class="code-textarea" 
-            placeholder="例如:&#10;104.16.1.1:443#移动优选01&#10;188.114.96.2:443#电信优选02&#10;www.spacex.com:443#SpaceX优选&#10;8.39.214.68:443#CF优选"
+            placeholder="例如:&#10;104.16.1.1:443#移动优选01&#10;188.114.96.2:443#电信优选02&#10;www.spacex.com:443#SpaceX优选"
           >{{ add_txt }}</textarea>
           <p class="hint">格式：<code>IP:端口#备注</code> 或 <code>域名:端口#备注</code>（如省略端口默认 443）。支持同时粘贴数十至上百条，每行一条。</p>
         </div>
       </div>
 
-      <!-- Card 4: 远程优选 API -->
+      <!-- Card 5: 远程优选 API -->
       <div class="card">
         <div class="card-title">🌐 远程优选测速源 (ADDAPI.txt)</div>
         <div class="form-group">
           <textarea 
             name="addapi_txt" 
             class="code-textarea" 
-            style="height: 100px;" 
+            style="height: 90px;" 
             placeholder="https://raw.githubusercontent.com/.../bestip.txt"
           >{{ addapi_txt }}</textarea>
-          <p class="hint">可选。支持填入远程公共优选 IP 库或自动化测速 API 地址，每行一条。</p>
+          <p class="hint">可选。支持填入远程公共优选 IP 库或自动化测速 API 地址，生成订阅时实时合并，每行一条。</p>
         </div>
       </div>
 
       <!-- Bottom Action -->
       <div class="action-bar">
-        <button type="submit" class="btn btn-primary" style="padding: 12px 28px; font-size: 1rem;">
+        <button type="submit" class="btn btn-primary" style="padding: 12px 32px; font-size: 1rem;">
           💾 保存并应用配置
         </button>
       </div>
@@ -130,7 +271,7 @@
       toast.classList.add('show');
       setTimeout(() => {
         toast.classList.remove('show');
-      }, 2000);
+      }, 2200);
     }
 
     function copyText(elementId) {
@@ -138,19 +279,33 @@
       const text = el.textContent || el.innerText;
       navigator.clipboard.writeText(text).then(() => {
         showToast('✅ 参数已复制');
-      }).catch(err => {
+      }).catch(() => {
         prompt('请手动复制：', text);
       });
     }
 
-    function copySubUrl() {
-      const input = document.getElementById('sub-url-input');
+    function copyInput(inputId, successMsg) {
+      const input = document.getElementById(inputId);
       input.select();
       navigator.clipboard.writeText(input.value).then(() => {
-        showToast('✅ 订阅链接已复制');
-      }).catch(err => {
-        prompt('请手动复制订阅链接：', input.value);
+        showToast('✅ ' + (successMsg || '已复制到剪贴板'));
+      }).catch(() => {
+        prompt('请手动复制：', input.value);
       });
+    }
+
+    async function appendRandomIPs(isp) {
+      try {
+        const resp = await fetch('/admin/ADD.txt?cnIspCode=' + isp);
+        if (resp.ok) {
+          const text = await resp.text();
+          const area = document.getElementById('add_txt_area');
+          area.value = (area.value ? area.value.trim() + '\n' : '') + text.trim();
+          showToast('✅ 已追加 16 个' + (isp === 'cmcc' ? '移动' : '电信') + '优选 IP 到文本框');
+        }
+      } catch (e) {
+        showToast('❌ 拉取失败: ' + e);
+      }
     }
   </script>
 </body>
