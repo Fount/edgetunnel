@@ -200,6 +200,9 @@ def render_template(template_name, context=None):
         html = html.replace(f"{{{{ {k} }}}}", str(v))
         html = html.replace(f"{{{{{k}}}}}", str(v))
     return html.encode("utf-8")
+
+
+def sign_token(val):
     sig = hmac.new(SECRET_KEY, val.encode("utf-8"), hashlib.sha256).hexdigest()
     return f"{val}.{sig}"
 
