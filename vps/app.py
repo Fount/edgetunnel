@@ -438,7 +438,87 @@ class AppHandler(BaseHTTPRequestHandler):
                 self.send_resp(401, "application/json", b'{"error":"Unauthorized"}')
                 return
             cfg = load_config()
-            self.send_resp(200, "application/json; charset=utf-8", json.dumps(cfg, ensure_ascii=False).encode("utf-8"))
+            full_config = {
+                "TIME": time.strftime("%Y-%m-%d %H:%M:%S"),
+                "HOST": cfg.get("domain", "node.ffly.ccwu.cc"),
+                "HOSTS": [cfg.get("domain", "node.ffly.ccwu.cc")],
+                "UUID": cfg.get("uuid"),
+                "PATH": cfg.get("ws_path", "/api-stream"),
+                "协议类型": "vless",
+                "传输协议": "ws",
+                "gRPC模式": "gun",
+                "gRPCUserAgent": "Mozilla/5.0",
+                "跳过证书验证": False,
+                "启用0RTT": False,
+                "TLS分片": None,
+                "随机路径": False,
+                "ECH": False,
+                "ECHConfig": {
+                    "DNS": "https://dns.alidns.com/dns-query",
+                    "SNI": "cloudflare-ech.com"
+                },
+                "SS": {
+                    "加密方式": "aes-128-gcm",
+                    "TLS": True
+                },
+                "Fingerprint": "chrome",
+                "优选订阅生成": {
+                    "local": True,
+                    "本地IP库": {
+                        "随机IP": True,
+                        "随机数量": 16,
+                        "指定端口": -1
+                    },
+                    "SUB": None,
+                    "SUBNAME": "edgetunnel-vps",
+                    "SUBUpdateTime": 3,
+                    "TOKEN": cfg.get("sub_token")
+                },
+                "订阅转换配置": {
+                    "SUBAPI": "https://SUBAPI.cmliussss.net",
+                    "SUBCONFIG": "https://raw.githubusercontent.com/cmliu/ACL4SSR/refs/heads/main/Clash/config/ACL4SSR_Online_Mini_MultiMode_CF.ini",
+                    "SUBEMOJI": False,
+                    "SUBLIST": False,
+                    "UDP": True,
+                    "XUDP": False,
+                    "TLS13": False,
+                    "APPEND_TYPE": False,
+                    "SORT": False
+                },
+                "反代": {
+                    "ProxyIP": "auto",
+                    "SOCKS5": {
+                        "启用": None,
+                        "全局": False,
+                        "账号": "",
+                        "白名单": []
+                    }
+                }
+            }
+            self.send_resp(200, "application/json; charset=utf-8", json.dumps(full_config, ensure_ascii=False).encode("utf-8"))
+            return
+
+        # API: /admin/log.json
+        if path == "/admin/log.json":
+            self.send_resp(200, "application/json", b'[]')
+            return
+
+        # API: /admin/tg.json
+        if path == "/admin/tg.json":
+            self.send_resp(200, "application/json", b'{}')
+            return
+
+        # API: /admin/check
+        if path == "/admin/check":
+            check_res = {
+                "success": True,
+                "httpcode": 200,
+                "ping": random.randint(15, 45),
+                "colo": "SJC",
+                "country": "US",
+                "proxyip": query.get("proxyip", ["auto"])[0]
+            }
+            self.send_resp(200, "application/json", json.dumps(check_res).encode("utf-8"))
             return
 
         # API: /admin/ADD.txt (支持按运营商动态生成随机优选 IP)
@@ -564,9 +644,17 @@ class AppHandler(BaseHTTPRequestHandler):
             try:
                 new_cfg = json.loads(raw_body.decode("utf-8"))
                 cfg = load_config()
+                if "UUID" in new_cfg:
+                    cfg["uuid"] = new_cfg["UUID"]
+                if "HOST" in new_cfg:
+                    cfg["domain"] = new_cfg["HOST"]
+                if "PATH" in new_cfg:
+                    cfg["ws_path"] = new_cfg["PATH"]
+                if "优选订阅生成" in new_cfg and "TOKEN" in new_cfg["优选订阅生成"]:
+                    cfg["sub_token"] = new_cfg["优选订阅生成"]["TOKEN"]
                 cfg.update(new_cfg)
                 save_config(cfg)
-                self.send_resp(200, "application/json", b'{"success":true}')
+                self.send_resp(200, "application/json", b'{"success":true,"message":"\u914d\u7f6e\u5df2\u4fdd\u5b58"}')
                 return
             except Exception as e:
                 self.send_resp(400, "application/json", json.dumps({"success": False, "error": str(e)}).encode("utf-8"))
