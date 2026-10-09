@@ -2,6 +2,12 @@
   "log": {
     "loglevel": "warning"
   },
+  "dns": {
+    "servers": [
+      "1.1.1.1",
+      "8.8.8.8"
+    ]
+  },
   "inbounds": [
     {
       "tag": "vless-ws-in",
@@ -84,7 +90,7 @@
     }
   ],
   "routing": {
-    "domainStrategy": "AsIs",
+    "domainStrategy": "IPIfNonMatch",
     "rules": [
       {
         "type": "field",
