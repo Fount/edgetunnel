@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>edgetunnel VPS 节点管理</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <div class="container">
+    <!-- Header -->
+    <header class="header">
+      <div class="brand">
+        <div class="brand-logo">🚀</div>
+        <div>
+          <span class="brand-title">edgetunnel VPS</span>
+          <span class="badge">VPS Edition</span>
+        </div>
+      </div>
+      <div class="header-actions">
+        <a href="/logout" class="btn btn-secondary">退出登录</a>
+      </div>
+    </header>
+
+    {% if msg %}
+    <div class="alert alert-success">{{ msg }}</div>
+    {% endif %}
+
+    <!-- Card 1: 核心参数概览 -->
+    <div class="card">
+      <div class="card-title">🔑 核心运行参数</div>
+      <div class="param-grid">
+        <div class="param-item">
+          <span class="param-label">用户 UUID</span>
+          <div class="param-value-wrap">
+            <span class="param-value" id="val-uuid">{{ uuid }}</span>
+            <button type="button" class="btn-copy" onclick="copyText('val-uuid')">复制</button>
+          </div>
+        </div>
+        <div class="param-item">
+          <span class="param-label">订阅 Token</span>
+          <div class="param-value-wrap">
+            <span class="param-value" id="val-token">{{ token }}</span>
+            <button type="button" class="btn-copy" onclick="copyText('val-token')">复制</button>
+          </div>
+        </div>
+        <div class="param-item">
+          <span class="param-label">服务域名 (SNI / Host)</span>
+          <div class="param-value-wrap">
+            <span class="param-value" id="val-domain">{{ domain }}</span>
+            <button type="button" class="btn-copy" onclick="copyText('val-domain')">复制</button>
+          </div>
+        </div>
+        <div class="param-item">
+          <span class="param-label">Reality 端口 / 公钥</span>
+          <div class="param-value-wrap">
+            <span class="param-value" id="val-reality">{{ reality_port }} | {{ reality_public_key }}</span>
+            <button type="button" class="btn-copy" onclick="copyText('val-reality')">复制</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Card 2: 快捷订阅导出 -->
+    <div class="card">
+      <div class="card-title">🔗 Clash / Mihomo 专属订阅</div>
+      <div class="sub-box">
+        <input 
+          type="text" 
+          id="sub-url-input" 
+          class="sub-input" 
+          value="{{ sub_url }}" 
+          readonly 
+          onclick="this.select()"
+        >
+        <button type="button" class="btn btn-primary" onclick="copySubUrl()">
+          📋 复制 Clash 订阅链接
+        </button>
+      </div>
+      <p class="hint">可直接填入 Clash Verge、Clash Meta 或 NAS 聚合服务中，自动包含全部优选节点与 Reality 直连。</p>
+    </div>
+
+    <!-- Main Config Form -->
+    <form method="POST" action="/admin">
+      <!-- Card 3: 自定义优选 IP 池 -->
+      <div class="card">
+        <div class="card-title">📝 自定义优选 IP / 域名池 (ADD.txt)</div>
+        <div class="form-group">
+          <textarea 
+            name="add_txt" 
+            class="code-textarea" 
+            placeholder="例如:&#10;104.16.1.1:443#移动优选01&#10;188.114.96.2:443#电信优选02&#10;www.spacex.com:443#SpaceX优选&#10;8.39.214.68:443#CF优选"
+          >{{ add_txt }}</textarea>
+          <p class="hint">格式：<code>IP:端口#备注</code> 或 <code>域名:端口#备注</code>（如省略端口默认 443）。支持同时粘贴数十至上百条，每行一条。</p>
+        </div>
+      </div>
+
+      <!-- Card 4: 远程优选 API -->
+      <div class="card">
+        <div class="card-title">🌐 远程优选测速源 (ADDAPI.txt)</div>
+        <div class="form-group">
+          <textarea 
+            name="addapi_txt" 
+            class="code-textarea" 
+            style="height: 100px;" 
+            placeholder="https://raw.githubusercontent.com/.../bestip.txt"
+          >{{ addapi_txt }}</textarea>
+          <p class="hint">可选。支持填入远程公共优选 IP 库或自动化测速 API 地址，每行一条。</p>
+        </div>
+      </div>
+
+      <!-- Bottom Action -->
+      <div class="action-bar">
+        <button type="submit" class="btn btn-primary" style="padding: 12px 28px; font-size: 1rem;">
+          💾 保存并应用配置
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Toast Notification -->
+  <div id="toast" class="toast">
+    <span>✅ 已复制到剪贴板</span>
+  </div>
+
+  <script>
+    function showToast(msg) {
+      const toast = document.getElementById('toast');
+      if (msg) toast.querySelector('span').textContent = msg;
+      toast.classList.add('show');
+      setTimeout(() => {
+        toast.classList.remove('show');
+      }, 2000);
+    }
+
+    function copyText(elementId) {
+      const el = document.getElementById(elementId);
+      const text = el.textContent || el.innerText;
+      navigator.clipboard.writeText(text).then(() => {
+        showToast('✅ 参数已复制');
+      }).catch(err => {
+        prompt('请手动复制：', text);
+      });
+    }
+
+    function copySubUrl() {
+      const input = document.getElementById('sub-url-input');
+      input.select();
+      navigator.clipboard.writeText(input.value).then(() => {
+        showToast('✅ 订阅链接已复制');
+      }).catch(err => {
+        prompt('请手动复制订阅链接：', input.value);
+      });
+    }
+  </script>
+</body>
+</html>

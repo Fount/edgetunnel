@@ -1,0 +1,90 @@
+name: Deploy VPS Sub Service
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'vps/**'
+      - 'Dockerfile'
+      - 'docker-compose.yml'
+      - '.github/workflows/deploy-vps.yml'
+  workflow_dispatch:
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 计算小写镜像名称
+        id: image-name
+        run: |
+          IMAGE_TAG=$(echo "ghcr.io/${{ github.repository }}-vps:latest" | tr '[:upper:]' '[:lower:]')
+          echo "image_tag=$IMAGE_TAG" >> $GITHUB_OUTPUT
+          echo "Target image: $IMAGE_TAG"
+
+      - name: 登录 GitHub Container Registry (GHCR)
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 设置 Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: 构建并推送 Docker 镜像
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          tags: ${{ steps.image-name.outputs.image_tag }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: SSH 远程部署到 VPS
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: 22
+          script: |
+            set -e
+            echo "==> 登录 GHCR 镜像源"
+            echo "${{ secrets.GITHUB_TOKEN }}" | sudo docker login ghcr.io -u ${{ github.actor }} --password-stdin
+            
+            echo "==> 准备运行目录与配置"
+            sudo mkdir -p /opt/vps-sub/data
+            sudo chown -R ${{ secrets.VPS_USER }}:${{ secrets.VPS_USER }} /opt/vps-sub
+            
+            cd /opt/vps-sub
+            IMAGE_TAG=$(echo "ghcr.io/${{ github.repository }}-vps:latest" | tr '[:upper:]' '[:lower:]')
+            
+            cat << EOF > docker-compose.yml
+            version: '3.8'
+            services:
+              vps-sub:
+                image: $IMAGE_TAG
+                container_name: vps-sub-service
+                restart: always
+                network_mode: host
+                volumes:
+                  - /opt/vps-sub/data:/app/data
+                environment:
+                  - TZ=Asia/Shanghai
+                  - PORT=8787
+                  - DATA_DIR=/app/data
+            EOF
+            
+            echo "==> 拉取最新镜像并启动"
+            sudo docker compose pull
+            sudo docker compose up -d --remove-orphans
+            sudo docker image prune -f
+            echo "==> [edgetunnel VPS] 部署完成，容器已启动！"

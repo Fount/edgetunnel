@@ -1,0 +1,14 @@
+version: '3.8'
+
+services:
+  vps-sub:
+    image: ghcr.io/fount/edgetunnel-vps:latest
+    container_name: vps-sub-service
+    restart: always
+    network_mode: host
+    volumes:
+      - /opt/vps-sub/data:/app/data
+    environment:
+      - TZ=Asia/Shanghai
+      - PORT=8787
+      - DATA_DIR=/app/data

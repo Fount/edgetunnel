@@ -1,0 +1,15 @@
+{
+  "admin_password": "admin123",
+  "uuid": "9a5645d9-3a42-4566-8555-3ef472e98e68",
+  "sub_token": "7b20ba0ec477d294e90c7e49",
+  "domain": "node.ffly.ccwu.cc",
+  "vps_ip": "64.112.40.121",
+  "ws_path": "/api-stream",
+  "ws_port": 10000,
+  "reality_port": 8443,
+  "reality_server_name": "gateway.icloud.com",
+  "reality_dest": "gateway.icloud.com:443",
+  "reality_private_key": "cOaL83y_Q4f3H8Bq7r9Z0X1W2V3U4T5S6R7Q8P9O0NM=",
+  "reality_public_key": "uE4rF9pX8vM5kW3yQ7zT0sR1vP2oN3mL4kJ5iH6gE1A=",
+  "reality_short_id": "0123456789abcdef"
+}
