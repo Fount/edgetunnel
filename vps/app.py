@@ -421,7 +421,6 @@ class AppHandler(BaseHTTPRequestHandler):
             if not self.is_authenticated():
                 self.redirect("/login")
                 return
-            # 优先渲染原版 edt-pages 完整管理后台
             orig_path = os.path.join(BASE_DIR, "templates", "admin_original.html")
             if os.path.exists(orig_path):
                 with open(orig_path, "rb") as f:
@@ -438,12 +437,24 @@ class AppHandler(BaseHTTPRequestHandler):
                 self.send_resp(401, "application/json", b'{"error":"Unauthorized"}')
                 return
             cfg = load_config()
+            host = self.headers.get("Host", cfg.get("domain", "node.ffly.ccwu.cc"))
+            if ":" in host:
+                host_domain = host.split(":")[0]
+            else:
+                host_domain = host
+
+            uuid_val = cfg.get("uuid")
+            ws_path = cfg.get("ws_path", "/api-stream")
+            link_url = f"vless://{uuid_val}@{host}:443?encryption=none&security=tls&sni={host_domain}&type=ws&host={host_domain}&path={urllib.parse.quote(ws_path)}#{urllib.parse.quote(host_domain)}"
+
             full_config = {
                 "TIME": time.strftime("%Y-%m-%d %H:%M:%S"),
-                "HOST": cfg.get("domain", "node.ffly.ccwu.cc"),
-                "HOSTS": [cfg.get("domain", "node.ffly.ccwu.cc")],
-                "UUID": cfg.get("uuid"),
-                "PATH": cfg.get("ws_path", "/api-stream"),
+                "HOST": host_domain,
+                "HOSTS": [host_domain],
+                "UUID": uuid_val,
+                "PATH": ws_path,
+                "LINK": link_url,
+                "加载时间": "12ms",
                 "协议类型": "vless",
                 "传输协议": "ws",
                 "gRPC模式": "gun",
@@ -629,10 +640,7 @@ class AppHandler(BaseHTTPRequestHandler):
                 cookie_str = f"auth={signed_cookie}; Path=/; Max-Age=604800; HttpOnly; SameSite=Lax"
                 self.redirect("/admin", set_cookie=cookie_str)
                 return
-            tpl_path = os.path.join(BASE_DIR, "templates", "login.html")
-            with open(tpl_path, "r", encoding="utf-8") as f:
-                body = f.read().replace("{% if error %}", "").replace("{% endif %}", "").replace("{{ error }}", "密码错误，请重新输入").encode("utf-8")
-            self.send_resp(401, "text/html; charset=utf-8", body)
+            self.redirect("/login?error=1")
             return
 
         if not self.is_authenticated():
