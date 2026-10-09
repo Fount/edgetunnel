@@ -460,42 +460,9 @@ class AppHandler(BaseHTTPRequestHandler):
             if not self.is_authenticated():
                 self.redirect("/login")
                 return
-            cfg = load_config()
-            add_txt = ""
-            if os.path.exists(ADD_PATH):
-                with open(ADD_PATH, "r", encoding="utf-8") as f:
-                    add_txt = f.read()
-            addapi_txt = ""
-            if os.path.exists(ADDAPI_PATH):
-                with open(ADDAPI_PATH, "r", encoding="utf-8") as f:
-                    addapi_txt = f.read()
-
-            host_header = self.headers.get("Host", cfg.get("domain", "node.ffly.ccwu.cc"))
-            proto = "https" if "https" in self.headers.get("X-Forwarded-Proto", "http") or ":443" in host_header else "http"
-            sub_url = f"{proto}://{host_header}/sub?token={cfg['sub_token']}"
-            host_domain = host_header.split(":")[0] if ":" in host_header else host_header
-            vless_link = f"vless://{cfg['uuid']}@{host_header}:443?encryption=none&security=tls&sni={host_domain}&type=ws&host={host_domain}&path={urllib.parse.quote(cfg.get('ws_path', '/api-stream'))}#{urllib.parse.quote(host_domain)}"
-
-            enabled_isps = cfg.get("enabled_isps", ["cmcc", "ct"])
-            context = {
-                "uuid": cfg["uuid"],
-                "token": cfg["sub_token"],
-                "domain": cfg.get("domain", "node.ffly.ccwu.cc"),
-                "reality_port": cfg.get("reality_port", 8443),
-                "reality_public_key": cfg.get("reality_public_key", ""),
-                "ws_path": cfg.get("ws_path", "/api-stream"),
-                "sub_url": sub_url,
-                "vless_link": vless_link,
-                "add_txt": add_txt,
-                "addapi_txt": addapi_txt,
-                "enable_cmcc": "cmcc" in enabled_isps,
-                "enable_ct": "ct" in enabled_isps,
-                "enable_cu": "cu" in enabled_isps,
-                "enable_cf": "cf" in enabled_isps,
-                "msg": query.get("msg", [""])[0],
-            }
-            body = render_template("admin.html", context)
-            self.send_resp(200, "text/html; charset=utf-8", body)
+            tpl_path = os.path.join(BASE_DIR, "templates", "admin.html")
+            with open(tpl_path, "rb") as f:
+                self.send_resp(200, "text/html; charset=utf-8", f.read())
             return
 
         # API: /admin/config.json
@@ -512,7 +479,7 @@ class AppHandler(BaseHTTPRequestHandler):
 
             uuid_val = cfg.get("uuid")
             ws_path = cfg.get("ws_path", "/api-stream")
-            link_url = f"vless://{uuid_val}@{host}:443?encryption=none&security=tls&sni={host_domain}&type=ws&host={host_domain}&path={urllib.parse.quote(ws_path)}#{urllib.parse.quote(host_domain)}"
+            link_url = f"vless://{uuid_val}@{host_domain}:443?encryption=none&security=tls&sni={host_domain}&type=ws&host={host_domain}&path={urllib.parse.quote(ws_path)}#{urllib.parse.quote(host_domain)}"
 
             full_config = {
                 "TIME": time.strftime("%Y-%m-%d %H:%M:%S"),
@@ -566,12 +533,24 @@ class AppHandler(BaseHTTPRequestHandler):
                 },
                 "反代": {
                     "ProxyIP": "auto",
+                    "PROXYIP": "auto",
                     "SOCKS5": {
                         "启用": None,
                         "全局": False,
                         "账号": "",
                         "白名单": []
                     }
+                },
+                "CF": {
+                    "Usage": {
+                        "workers": 0,
+                        "pages": 0,
+                        "total": 0,
+                        "max": 100000,
+                        "success": True
+                    },
+                    "UsageAPI": "none",
+                    "启用": False
                 }
             }
             self.send_resp(200, "application/json; charset=utf-8", json.dumps(full_config, ensure_ascii=False).encode("utf-8"))
