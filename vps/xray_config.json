@@ -63,6 +63,10 @@
   ],
   "outbounds": [
     {
+      "protocol": "freedom",
+      "tag": "direct"
+    },
+    {
       "tag": "warp-out",
       "protocol": "wireguard",
       "settings": {
@@ -81,10 +85,6 @@
       }
     },
     {
-      "protocol": "freedom",
-      "tag": "direct"
-    },
-    {
       "protocol": "blackhole",
       "tag": "block"
     }
@@ -94,8 +94,16 @@
     "rules": [
       {
         "type": "field",
+        "outboundTag": "warp-out",
+        "domain": [
+          "domain:vastnext.com",
+          "vastnext.com"
+        ]
+      },
+      {
+        "type": "field",
         "network": "tcp,udp",
-        "outboundTag": "warp-out"
+        "outboundTag": "direct"
       }
     ]
   }
