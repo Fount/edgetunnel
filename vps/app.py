@@ -471,20 +471,16 @@ class AppHandler(BaseHTTPRequestHandler):
                 self.send_resp(401, "application/json", b'{"error":"Unauthorized"}')
                 return
             cfg = load_config()
-            host = self.headers.get("Host", cfg.get("domain", "node.ffly.ccwu.cc"))
-            if ":" in host:
-                host_domain = host.split(":")[0]
-            else:
-                host_domain = host
+            domain = cfg.get("domain", "node.ffly.ccwu.cc")
 
             uuid_val = cfg.get("uuid")
             ws_path = cfg.get("ws_path", "/api-stream")
-            link_url = f"vless://{uuid_val}@{host_domain}:443?encryption=none&security=tls&sni={host_domain}&type=ws&host={host_domain}&path={urllib.parse.quote(ws_path)}#{urllib.parse.quote(host_domain)}"
+            link_url = f"vless://{uuid_val}@{domain}:443?encryption=none&security=tls&sni={domain}&type=ws&host={domain}&path={urllib.parse.quote(ws_path)}#{urllib.parse.quote(domain)}"
 
             full_config = {
                 "TIME": time.strftime("%Y-%m-%d %H:%M:%S"),
-                "HOST": host_domain,
-                "HOSTS": list(dict.fromkeys([host_domain, "node.ffly.ccwu.cc", "ffly.ccwu.cc", host])),
+                "HOST": domain,
+                "HOSTS": [domain],
                 "UUID": uuid_val,
                 "PATH": ws_path,
                 "LINK": link_url,
