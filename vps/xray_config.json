@@ -57,6 +57,24 @@
   ],
   "outbounds": [
     {
+      "tag": "warp-out",
+      "protocol": "wireguard",
+      "settings": {
+        "secretKey": "%%WARP_SECRET_KEY%%",
+        "address": [
+          "%%WARP_V4%%",
+          "%%WARP_V6%%"
+        ],
+        "peers": [
+          {
+            "publicKey": "%%WARP_PEER_PUB%%",
+            "endpoint": "%%WARP_ENDPOINT%%"
+          }
+        ],
+        "kernelMode": false
+      }
+    },
+    {
       "protocol": "freedom",
       "tag": "direct"
     },
@@ -64,5 +82,15 @@
       "protocol": "blackhole",
       "tag": "block"
     }
-  ]
+  ],
+  "routing": {
+    "domainStrategy": "AsIs",
+    "rules": [
+      {
+        "type": "field",
+        "network": "tcp,udp",
+        "outboundTag": "warp-out"
+      }
+    ]
+  }
 }
