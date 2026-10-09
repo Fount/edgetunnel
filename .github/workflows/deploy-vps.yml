@@ -85,6 +85,6 @@ jobs:
             
             echo "==> 拉取最新镜像并启动"
             sudo docker compose pull
-            sudo docker compose up -d --remove-orphans
+            sudo docker compose up -d --force-recreate --remove-orphans
             sudo docker image prune -f
             echo "==> [edgetunnel VPS] 部署完成，容器已启动！"

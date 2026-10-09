@@ -6,13 +6,14 @@ echo "=== [edgetunnel VPS] Starting Initialization ==="
 DATA_DIR=${DATA_DIR:-/app/data}
 mkdir -p "$DATA_DIR"
 
-# 1. 触发 Python 首次加载，生成初始 config.json 和 ADD.txt
+# 1. 触发 Python 首次加载与 Reality 密钥生成
 python3 -c "
 import sys, os
 sys.path.insert(0, '/app/vps')
 import app
 cfg = app.load_config()
 print(f'[*] Loaded UUID: {cfg[\"uuid\"]}')
+print(f'[*] Reality PubKey: {cfg[\"reality_public_key\"]}')
 print(f'[*] Sub Token: {cfg[\"sub_token\"]}')
 "
 
