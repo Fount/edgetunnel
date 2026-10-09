@@ -25,7 +25,7 @@
     },
     {
       "tag": "vless-reality-in",
-      "port": 8443,
+      "port": 9443,
       "listen": "0.0.0.0",
       "protocol": "vless",
       "settings": {

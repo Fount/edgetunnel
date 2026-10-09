@@ -39,8 +39,8 @@ COPY vps /app/vps
 
 RUN chmod +x /app/vps/entrypoint.sh
 
-# 暴露 Web 管理端口 (8787) 与 Reality 端口 (8443)
-EXPOSE 8787 8443
+# 暴露 Web 管理端口 (8787) 与 Reality 端口 (9443)
+EXPOSE 8787 9443
 
 VOLUME ["/app/data"]
 

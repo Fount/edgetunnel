@@ -67,7 +67,7 @@ DEFAULT_CONFIG = {
     "vps_ip": os.environ.get("VPS_IP", "64.112.40.121"),
     "ws_path": "/api-stream",
     "ws_port": 10000,
-    "reality_port": 8443,
+    "reality_port": 9443,
     "reality_server_name": "gateway.icloud.com",
     "reality_dest": "gateway.icloud.com:443",
     "reality_private_key": "",
