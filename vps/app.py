@@ -360,6 +360,9 @@ class AppHandler(BaseHTTPRequestHandler):
         auth_val = self.get_cookie("auth")
         return verify_token(auth_val)
 
+    def do_HEAD(self):
+        self.do_GET()
+
     def do_GET(self):
         parsed = urllib.parse.urlparse(self.path)
         path = parsed.path
