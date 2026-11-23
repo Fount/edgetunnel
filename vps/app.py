@@ -277,27 +277,10 @@ def build_clash_yaml(cfg, add_txt, addapi_txt=""):
     proxies = []
     seen_names = set()
 
-    # 1. Reality 极速直连节点
-    reality_name = "🚀 VPS-Reality极速直连"
-    seen_names.add(reality_name)
-    proxies.append(
-        f'  - name: "{reality_name}"\n'
-        f'    type: vless\n'
-        f'    server: {cfg["vps_ip"]}\n'
-        f'    port: {cfg["reality_port"]}\n'
-        f'    uuid: {cfg["uuid"]}\n'
-        f'    network: tcp\n'
-        f'    tls: true\n'
-        f'    udp: true\n'
-        f'    flow: xtls-rprx-vision\n'
-        f'    servername: {cfg["reality_server_name"]}\n'
-        f'    reality-opts:\n'
-        f'      public-key: {cfg["reality_public_key"]}\n'
-        f'      short-id: "{cfg["reality_short_id"]}"\n'
-        f'    client-fingerprint: chrome'
-    )
+    # 防封策略: 不再输出任何直连节点(Reality 已下架), 全部节点经 CF Anycast 中转, 国内流量永不触达 VPS 真实 IP
+    # (原 Reality 节点见 git 历史; Xray reality 入站保留但仅 127.0.0.1 可达用途)
 
-    # 2. CF Anycast 优选节点池
+    # 1. CF Anycast 优选节点池
     cf_node_names = []
     for line in raw_lines:
         node = parse_node_line(line)
@@ -328,8 +311,11 @@ def build_clash_yaml(cfg, add_txt, addapi_txt=""):
             f'    client-fingerprint: chrome'
         )
 
-    all_node_names = [reality_name] + cf_node_names
+    all_node_names = cf_node_names
     all_quoted = [f'      - "{n}"' for n in all_node_names]
+
+    if not all_node_names:
+        all_quoted = ['      - "♻️ 自动选择"']
 
     proxy_groups = (
         "  - name: 🚀 节点选择\n"
@@ -368,7 +354,7 @@ def build_clash_yaml(cfg, add_txt, addapi_txt=""):
     now_str = time.strftime("%Y-%m-%d %H:%M:%S")
     hdr = (
         f"# edgetunnel VPS 独立节点订阅\n"
-        f"# 生成时间: {now_str} | 节点总数: {len(all_node_names)} (Reality: 1, CF优选: {len(cf_node_names)})\n\n"
+        f"# 生成时间: {now_str} | 节点总数: {len(all_node_names)} (全部走 CF 中转, 无直连节点)\n\n"
         f"mixed-port: 7890\n"
         f"allow-lan: true\n"
         f"mode: rule\n"
