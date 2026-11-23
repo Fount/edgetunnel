@@ -1,5 +1,6 @@
 # Multi-stage lightweight build for edgetunnel VPS
-FROM public.ecr.aws/docker/library/python:3.11-alpine
+# 注意: 基础镜像由 workflow 预取(python:3.11-alpine, 失败自动回退 ECR), 本地存在则不再拉取
+FROM python:3.11-alpine
 
 LABEL maintainer="FountainChan <https://github.com/Fount/edgetunnel>"
 LABEL description="edgetunnel VPS Edition - Standalone Airport & Admin Service"

@@ -35,6 +35,15 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: 预取基础镜像(双源回退, 规避单源 429/504)
+        run: |
+          docker pull python:3.11-alpine || true
+          if ! docker image inspect python:3.11-alpine >/dev/null 2>&1; then
+            docker pull public.ecr.aws/docker/library/python:3.11-alpine
+            docker tag public.ecr.aws/docker/library/python:3.11-alpine python:3.11-alpine
+          fi
+          docker image inspect python:3.11-alpine --format 'base image ready: {{.Id}}'
+
       - name: 构建并推送 Docker 镜像
         run: |
           docker build -t ${{ steps.image-name.outputs.image_tag }} .
